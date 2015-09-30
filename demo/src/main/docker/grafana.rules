@@ -1,0 +1,56 @@
+###
+### Akka Actor metrics
+###
+
+akka_actor_metrics:median_processing_time = histogram_quantile(0.5, akka_actor_processing_time_nanoseconds_bucket)
+
+akka_actor_metrics:demo_processing_time_p25 = histogram_quantile(0.25, akka_actor_processing_time_nanoseconds_bucket{actor_name="demo/user/demo-service"})
+akka_actor_metrics:demo_processing_time_p50 = histogram_quantile(0.50, akka_actor_processing_time_nanoseconds_bucket{actor_name="demo/user/demo-service"})
+akka_actor_metrics:demo_processing_time_p75 = histogram_quantile(0.75, akka_actor_processing_time_nanoseconds_bucket{actor_name="demo/user/demo-service"})
+akka_actor_metrics:demo_processing_time_p90 = histogram_quantile(0.90, akka_actor_processing_time_nanoseconds_bucket{actor_name="demo/user/demo-service"})
+akka_actor_metrics:demo_processing_time_p99 = histogram_quantile(0.99, akka_actor_processing_time_nanoseconds_bucket{actor_name="demo/user/demo-service"})
+akka_actor_metrics:demo_processing_time_p99_9 = histogram_quantile(0.999, akka_actor_processing_time_nanoseconds_bucket{actor_name="demo/user/demo-service"})
+
+akka_actor_metrics:median_time_in_mailbox = histogram_quantile(0.5, akka_actor_processing_time_nanoseconds_bucket)
+
+akka_actor_metrics:demo_time_in_mailbox_p25 = histogram_quantile(0.25, akka_actor_time_in_mailbox_nanoseconds_bucket{actor_name="demo/user/demo-service"})
+akka_actor_metrics:demo_time_in_mailbox_p50 = histogram_quantile(0.50, akka_actor_time_in_mailbox_nanoseconds_bucket{actor_name="demo/user/demo-service"})
+akka_actor_metrics:demo_time_in_mailbox_p75 = histogram_quantile(0.75, akka_actor_time_in_mailbox_nanoseconds_bucket{actor_name="demo/user/demo-service"})
+akka_actor_metrics:demo_time_in_mailbox_p90 = histogram_quantile(0.90, akka_actor_time_in_mailbox_nanoseconds_bucket{actor_name="demo/user/demo-service"})
+
+
+###
+### Akka router metrics
+###
+
+akka_router_metrics:median_routing_time = histogram_quantile(0.5, akka_router_routing_time_nanoseconds_bucket)
+
+akka_router_metrics:max_routing_time = histogram_quantile(1.0, akka_router_routing_time_nanoseconds_bucket)
+
+akka_router_metrics:median_time_in_mailbox = histogram_quantile(0.5,akka_router_time_in_mailbox_nanoseconds_bucket)
+
+akka_router_metrics:max_time_in_mailbox = histogram_quantile(1.0,akka_router_time_in_mailbox_nanoseconds_bucket)
+
+akka_router_metrics:median_processing_time = histogram_quantile(0.5, akka_router_processing_time_nanoseconds_bucket)
+
+akka_router_metrics:max_processing_time = histogram_quantile(1.0, akka_router_processing_time_nanoseconds_bucket)
+
+
+###
+### Spray response metrics
+###
+srm_response_time_q1 = histogram_quantile(0.25, sum(spray_service_response_duration_nanoseconds_bucket{timed_out="false"}) by (le))
+
+srm_response_time_q2 = histogram_quantile(0.5, sum(spray_service_response_duration_nanoseconds_bucket{timed_out="false"}) by (le))
+
+srm_response_time_q3 = histogram_quantile(0.75, sum(spray_service_response_duration_nanoseconds_bucket{timed_out="false"}) by (le))
+
+srm_response_time_q4 = histogram_quantile(1.0, sum(spray_service_response_duration_nanoseconds_bucket{timed_out="false"}) by (le))
+
+srm_median_response_time_by_method_and_path = histogram_quantile(0.5, sum(spray_service_response_duration_nanoseconds_bucket{timed_out="false"}) by (method, path, le)) < +Inf
+
+srm_max_response_time_by_method_and_path = histogram_quantile(1.0, sum(spray_service_response_duration_nanoseconds_bucket{timed_out="false"}) by (method, path, le)) < +Inf
+
+srm_rpm_by_method_and_path = sum(sum_over_time(spray_service_response_duration_nanoseconds_count{timed_out="false"}[1m])) by (method,path)
+
+srm_error_rpm_by_method_and_path = sum(sum_over_time(spray_service_response_duration_nanoseconds_count{status_code!="200",timed_out="false"}[1m])) by (method,path, status_code)
