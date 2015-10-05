@@ -76,7 +76,7 @@ lazy val library = (project in file("library"))
       "com.typesafe.akka"      %% "akka-actor"               % akkaVersion,
       "com.typesafe"            % "config"                   % "1.3.0",
       "com.google.protobuf"     % "protobuf-java"            % "2.6.1",
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4" % "provided",
       // -- testing --
       "org.scalatest"     %% "scalatest"     % "2.2.5"      % "test",
       "com.typesafe.akka" %% "akka-testkit"  % akkaVersion  % "test",
