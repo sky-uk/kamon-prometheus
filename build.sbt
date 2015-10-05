@@ -109,7 +109,9 @@ lazy val library = (project in file("library"))
     },
     sourceGenerators in Compile += (protoc in Compile).taskValue,
     // We have to ensure that Kamon starts/stops serially
-    parallelExecution in Test := false
+    parallelExecution in Test := false,
+    // Don't count Protobuf-generated code in coverage
+    coverageExcludedPackages := "com\\.monsanto\\.arch\\.kamon\\.prometheus\\.metric\\..*"
   )
 
 lazy val demo = (project in file("demo"))
