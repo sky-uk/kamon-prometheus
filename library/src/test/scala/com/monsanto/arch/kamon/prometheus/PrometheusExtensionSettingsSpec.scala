@@ -33,7 +33,7 @@ class PrometheusExtensionSettingsSpec extends WordSpec with Matchers {
         Kamon.start(NoKamonLoggingConfig)
         val settings = Kamon.extension(Prometheus).settings
 
-        settings.refreshInterval shouldBe 90.seconds
+        settings.refreshInterval shouldBe 1.minute
         settings.subscriptions shouldBe DefaultSubscriptions
         settings.labels shouldBe Map.empty[String,String]
       }
