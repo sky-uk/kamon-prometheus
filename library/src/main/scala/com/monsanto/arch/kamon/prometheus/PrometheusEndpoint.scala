@@ -37,8 +37,8 @@ class PrometheusEndpoint(settings: PrometheusSettings)(implicit val actorRefFact
     ToResponseMarshaller.oneOf(TextContentType, ProtoBufContentType)(textMarshaller, protoBufMarshaller)
 
   /** Provides a basic route that responds to GET requests with the metrics in a Prometheus-compatible exposition
-    * format.  Note that if there is no snapshot information available, this will respond with a Service Unavailable
-    * error.
+    * format.  Note that if there is no snapshot information available, this will respond with a No Content
+    * response.
     */
   val route: Route = {
     import Directives._
