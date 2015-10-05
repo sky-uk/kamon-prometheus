@@ -42,7 +42,9 @@ val customMergeStrategy: String => MergeStrategy = {
 lazy val protoc = taskKey[Seq[File]]("Runs the protoc compiler")
 
 lazy val commonSettings = Seq(
+  homepage := Some(url("https://monsantoco.github.io/kamon-prometheus")),
   organization := "com.monsanto.arch",
+  organizationHomepage := Some(url("http://engineering.monsanto.org")),
   licenses := Seq("BSD New" → url("http://opensource.org/licenses/BSD-3-Clause")),
   scalaVersion := "2.11.7",
   scalacOptions ++= Seq(
@@ -70,6 +72,7 @@ lazy val library = (project in file("library"))
   .settings(bintrayPublishing: _*)
   .settings(
     name := "kamon-prometheus",
+    description := "Kamon module to export metrics to Prometheus",
     libraryDependencies ++= Seq(
       "io.kamon"               %% "kamon-core"               % kamonVersion,
       "io.spray"               %% "spray-routing"            % sprayVersion,
@@ -123,6 +126,7 @@ lazy val demo = (project in file("demo"))
   .settings(noPublishing: _*)
   .settings(
     name := "kamon-prometheus-demo",
+    description := "Docker image containing a demonstration of kamon-prometheus in action.",
     libraryDependencies ++= Seq(
       "io.kamon"          %% "kamon-spray"          % kamonVersion,
       "io.kamon"          %% "kamon-system-metrics" % kamonVersion,
