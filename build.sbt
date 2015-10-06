@@ -51,7 +51,14 @@ lazy val commonSettings = Seq(
     "-deprecation",
     "-unchecked"
   ),
-  resolvers += Resolver.jcenterRepo
+  resolvers += Resolver.jcenterRepo,
+  apiMappingsScala ++= Map(
+    ("com.typesafe.akka", "akka-actor") → "http://doc.akka.io/api/akka/%s",
+    ("io.spray", "spray-routing") → "http://spray.io/documentation/1.1-SNAPSHOT/api/"
+  ),
+  apiMappingsJava ++= Map(
+    ("com.typesafe", "config") → "http://typesafehub.github.io/config/latest/api"
+  )
 )
 
 val bintrayPublishing = Seq(
