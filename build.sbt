@@ -108,6 +108,11 @@ lazy val demo = (project in file("demo"))
     javaOptions in Revolver.reStart <++= AspectjKeys.weaverOptions in Aspectj,
     assemblyJarName in assembly <<= (name, version) map { (name, version) ⇒ s"$name-$version.jar" },
     docker <<= docker.dependsOn(assembly),
+    imageName in docker := ImageName(
+      namespace = Some("monsantoco"),
+      repository = "kamon-prometheus-demo",
+      tag = Some("latest")
+    ),
     dockerfile in docker := {
       import sbtdocker.Instructions._
 
