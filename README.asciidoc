@@ -130,6 +130,8 @@ http://prometheus.io/docs/concepts/data_model/#metric-names-and-labels[Prometheu
 Usage
 -----
 
+=== Creating the endpoint
+
 The module provides a Spray route which you can access via
 `Kamon(Prometheus).route`.  You can place this route anywhere in your
 application, but keep in mind that Prometheus scrapes `/metrics` by default.
@@ -161,6 +163,26 @@ Note that the route will only respond to `GET` requests and will automatically
 handle compression and media type negotiation.  If there is no content yet
 (generally before the first set of metrics has been collected), the route will
 return a _No Content_ response (204).
+
+
+=== Consuming the metrics
+
+Finally, all you need to do is
+http://prometheus.io/docs/operating/configuration/#scrape-configurations-scrape_config[configure
+a scrape configuration in Prometheus].  The following snippet is a minimal
+example that shold work with the minimal server from the previous section.
+
+[source,yaml]
+.A minimal Prometheus configuration snippet
+------------------------------------------------------------------------------
+scrape_configs:
+  - job_name: example
+    target_groups:
+      - targets: ['localhost:8888']
+------------------------------------------------------------------------------
+
+Note that the above configuration uses the default `scrape_interval` (one
+minute, matching _kamon-prometheus’_ default.) and `metrics_path` (`/metrics`).
 
 
 Development
