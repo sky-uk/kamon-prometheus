@@ -1,6 +1,6 @@
 val akkaVersion = "2.3.14"
 val sprayVersion = "1.3.3"
-val kamonVersion = "0.5.1"
+val kamonVersion = "0.5.2"
 
 lazy val protoc = taskKey[Seq[File]]("Runs the protoc compiler")
 
