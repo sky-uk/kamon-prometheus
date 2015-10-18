@@ -1,3 +1,5 @@
+import sbtprotobuf.ProtobufPlugin
+
 val akkaVersion = "2.3.14"
 val sprayVersion = "1.3.3"
 val kamonVersion = "0.5.2"
@@ -40,6 +42,7 @@ lazy val library = (project in file("library"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(commonSettings: _*)
   .settings(bintrayPublishing: _*)
+  .settings(ProtobufPlugin.protobufSettings: _*)
   .settings(
     name := "kamon-prometheus",
     description := "Kamon module to export metrics to Prometheus",
@@ -48,7 +51,6 @@ lazy val library = (project in file("library"))
       "io.spray"               %% "spray-routing"            % sprayVersion,
       "com.typesafe.akka"      %% "akka-actor"               % akkaVersion,
       "com.typesafe"            % "config"                   % "1.3.0",
-      "com.google.protobuf"     % "protobuf-java"            % "2.6.1",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4" % "provided",
       // -- testing --
       "org.scalatest"     %% "scalatest"     % "2.2.5"      % "test",
@@ -62,25 +64,8 @@ lazy val library = (project in file("library"))
       "org.scala-lang"          % "scala-reflect" % scalaVersion.value,
       "org.scala-lang.modules" %% "scala-xml"     % "1.0.4"
     ),
+    version in ProtobufPlugin.protobufConfig := "2.6.1",
 
-    protoc in Compile := {
-      val inputDir = (sourceDirectory in Compile).value / "proto"
-      val inputFile = inputDir / "metrics.proto"
-      val outputDir = (sourceManaged in Compile).value
-      val outputFile = outputDir / "com" / "monsanto" / "arch" / "kamon" / "prometheus" / "proto" / "Metrics.java"
-      val cacheDir = (streams in Compile).value.cacheDirectory / "protoc"
-
-      val cachedCompile = FileFunction.cached(cacheDir, FilesInfo.lastModified, FilesInfo.exists) {_ =>
-        (streams in Compile).value.log.info("Generating protobuf Java sources...")
-        val protocInvocation = Seq("protoc", s"--java_out=$outputDir", s"-I$inputDir", inputFile.toString)
-        outputDir.mkdirs()
-        Process(protocInvocation).run()
-        Set(outputFile)
-      }
-      cachedCompile(Set(inputFile))
-      Seq(outputFile)
-    },
-    sourceGenerators in Compile += (protoc in Compile).taskValue,
     // We have to ensure that Kamon starts/stops serially
     parallelExecution in Test := false,
     // Don't count Protobuf-generated code in coverage
