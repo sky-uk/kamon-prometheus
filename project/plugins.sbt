@@ -15,3 +15,9 @@ addSbtPlugin("me.lessis" % "bintray-sbt" % "0.3.0")
 addSbtPlugin("com.typesafe.sbt" % "sbt-site" % "0.8.2")
 
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.4.0")
+
+addSbtPlugin("com.typesafe.sbt" % "sbt-ghpages" % "0.5.4")
+
+dependencyOverrides ++= Set(
+  "com.typesafe.sbt" % "sbt-site" % "0.8.2"
+)

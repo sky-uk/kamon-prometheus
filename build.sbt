@@ -153,6 +153,12 @@ lazy val demo = (project in file("demo"))
     }
   )
 
+lazy val ghPagesSettings =
+  ghpages.settings ++
+  Seq(
+    git.remoteRepo := "git@github.com:MonsantoCo/kamon-prometheus.git"
+  )
+
 lazy val siteSettings =
   site.settings ++
   site.addMappingsToSiteDir(mappings in packageDoc in Compile in library, "api/snapshot") ++
@@ -164,3 +170,4 @@ lazy val `kamon-prometheus` = (project in file("."))
   .settings(commonSettings: _*)
   .settings(noPublishing: _*)
   .settings(siteSettings: _*)
+  .settings(ghPagesSettings: _*)
