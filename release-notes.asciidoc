@@ -1,0 +1,10 @@
+kamon-prometheus: release notes
+===============================
+
+// tag::release-notes[]
+
+=== 0.1.2
+
+* Initial public release
+
+// end::release-notes[]

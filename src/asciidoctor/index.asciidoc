@@ -1,0 +1,26 @@
+kamon-prometheus
+================
+Daniel Solano_Gómez
+:description: kamon-prometheus is a Kamon module which enables integration with the Prometheus \
+monitoring system.
+:keywords: kamon, metrics, prometheus, scala
+
+include::../../README.asciidoc[tags=preamble]
+
+Documentation
+-------------
+
+=== Usage
+
+For the best information on how to install and use the library, check out the
+https://github.com/MonsantoCo/kamon-prometheus/blob/master/README.asciidoc[README].
+
+=== API documentation
+
+* link:api/snapshot[snapshot]
+
+
+Release notes
+-------------
+
+include::../../release-notes.asciidoc[tags=release-notes]

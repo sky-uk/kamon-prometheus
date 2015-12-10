@@ -155,7 +155,8 @@ lazy val demo = (project in file("demo"))
 
 lazy val siteSettings =
   site.settings ++
-  site.addMappingsToSiteDir(mappings in packageDoc in Compile in library, "api/latest")
+  site.addMappingsToSiteDir(mappings in packageDoc in Compile in library, "api/snapshot") ++
+  site.asciidoctorSupport()
 
 lazy val `kamon-prometheus` = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)

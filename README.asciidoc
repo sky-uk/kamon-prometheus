@@ -1,6 +1,8 @@
 kamon-prometheus
 ================
 
+// tag::preamble[]
+
 This library provides a Kamon module that can serve metrics to
 http://prometheus.io/[Prometheus], an open source service monitoring system and
 time series database.  Since Prometheus uses a scraping mechanism and its own
@@ -23,6 +25,7 @@ Features
 ** Metric subscriptions to export
 ** Additional Prometheus labels on exported metrics
 
+// end::preamble[]
 
 
 Installation
