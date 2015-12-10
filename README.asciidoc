@@ -115,7 +115,7 @@ kamon.prometheus {
 
 _kamon-prometheus_ will automatically add a metric’s tags, name, and category
 to a published metric as labels.  If you which to add additional labels, you
-can add them under the `kamon.prometheus.labels` path, which is empt by
+can add them under the `kamon.prometheus.labels` path, which is empty by
 default.
 
 For example, given:
