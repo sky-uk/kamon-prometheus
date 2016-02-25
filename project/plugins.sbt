@@ -18,6 +18,8 @@ addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.5.1")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-ghpages" % "0.5.4")
 
+addSbtPlugin("org.scoverage" % "sbt-coveralls" % "1.0.3")
+
 dependencyOverrides ++= Set(
   "com.typesafe.sbt" % "sbt-site" % "0.8.2"
 )
