@@ -91,7 +91,6 @@ lazy val demo = (project in file("demo"))
   .dependsOn(library)
   .enablePlugins(DockerPlugin)
   .settings(commonSettings: _*)
-  .settings(Revolver.settings: _*)
   .settings(aspectjSettings: _*)
   .settings(noPublishing: _*)
   .settings(
@@ -105,7 +104,7 @@ lazy val demo = (project in file("demo"))
     ),
     fork in run := true,
     javaOptions in run <++= AspectjKeys.weaverOptions in Aspectj,
-    javaOptions in Revolver.reStart <++= AspectjKeys.weaverOptions in Aspectj,
+    javaOptions in reStart <++= AspectjKeys.weaverOptions in Aspectj,
     assemblyJarName in assembly <<= (name, version) map { (name, version) ⇒ s"$name-$version.jar" },
     docker <<= docker.dependsOn(assembly),
     imageName in docker := ImageName(
