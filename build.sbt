@@ -162,7 +162,9 @@ lazy val demo = (project in file("demo"))
         Expose(Seq(80, 3000, 9090))
       )
       sbtdocker.immutable.Dockerfile(instructions)
-    }
+    },
+    // Don't count demo code in coverage
+    coverageExcludedPackages := "com\\.monsanto\\.arch\\.kamon\\.prometheus\\.demo\\..*"
   )
 
 lazy val ghPagesSettings =
