@@ -3,6 +3,10 @@ kamon-prometheus
 
 // tag::preamble[]
 
+image::https://api.bintray.com/packages/monsanto/maven/kamon-prometheus/images/download.svg[link=”https://bintray.com/monsanto/maven/kamon-prometheus/_latestVersion”]
+[![Coverage Status](https://coveralls.io/repos/github/MonsantoCo/kamon-prometheus/badge.svg?branch=master)](https://coveralls.io/github/MonsantoCo/kamon-prometheus?branch=master)
+image:https://travis-ci.org/MonsantoCo/kamon-prometheus.svg?branch=master[“Build Status”, link=”https://travis-ci.org/MonsantoCo/kamon-prometheus”]
+
 This library provides a Kamon module that can serve metrics to
 http://prometheus.io/[Prometheus], an open source service monitoring system and
 time series database.  Since Prometheus uses a scraping mechanism and its own
