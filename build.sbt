@@ -1,3 +1,4 @@
+import java.util.Date
 import sbtprotobuf.ProtobufPlugin
 
 val akkaVersion = "2.3.14"
@@ -29,7 +30,21 @@ lazy val commonSettings = Seq(
 val bintrayPublishing = Seq(
   bintrayOrganization := Some("monsanto"),
   bintrayPackageLabels := Seq("kamon", "prometheus", "metrics"),
-  bintrayVcsUrl := Some("https://github.com/MonsantoCo/kamon-prometheus")
+  bintrayVcsUrl := Some("https://github.com/MonsantoCo/kamon-prometheus"),
+  publishTo := {
+    if (isSnapshot.value) Some("OJO Snapshots" at s"https://oss.jfrog.org/artifactory/oss-snapshot-local;build.timestamp=${new Date().getTime}")
+    else publishTo.value
+  },
+  credentials ++= {
+    List(bintrayCredentialsFile.value)
+      .filter(_.exists())
+      .map(f ⇒ Credentials.toDirect(Credentials(f)))
+      .map(c ⇒ Credentials("Artifactory Realm", "oss.jfrog.org", c.userName, c.passwd))
+  },
+  bintrayReleaseOnPublish := {
+    if (isSnapshot.value) false
+    else bintrayReleaseOnPublish.value
+  }
 )
 
 val noPublishing = Seq(
