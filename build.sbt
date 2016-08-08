@@ -3,7 +3,7 @@ import sbtprotobuf.ProtobufPlugin
 
 val akkaVersion = "2.3.14"
 val sprayVersion = "1.3.3"
-val kamonVersion = "0.5.2"
+val kamonVersion = "0.6.2"
 
 lazy val commonSettings = Seq(
   homepage := Some(url("https://monsantoco.github.io/kamon-prometheus")),
@@ -62,6 +62,7 @@ lazy val library = (project in file("library"))
     libraryDependencies ++= Seq(
       "io.kamon"               %% "kamon-core"               % kamonVersion,
       "io.spray"               %% "spray-routing"            % sprayVersion,
+      "io.spray"               %% "spray-can"            % sprayVersion,
       "com.typesafe.akka"      %% "akka-actor"               % akkaVersion,
       "com.typesafe"            % "config"                   % "1.3.0",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4" % "provided",
@@ -70,7 +71,9 @@ lazy val library = (project in file("library"))
       "com.typesafe.akka" %% "akka-testkit"  % akkaVersion  % "test",
       "io.spray"          %% "spray-testkit" % sprayVersion % "test",
       "org.scalacheck"    %% "scalacheck"    % "1.12.5"     % "test",
-      "io.kamon"          %% "kamon-akka"    % kamonVersion % "test"
+      "io.kamon"          %% "kamon-akka"    % kamonVersion % "test",
+      "ch.qos.logback" % "logback-core" % "1.1.7" % Test,
+      "ch.qos.logback" % "logback-classic" % "1.1.7" % Test
     ),
     dependencyOverrides ++= Set(
       "org.scala-lang"          % "scala-library" % scalaVersion.value,
@@ -82,7 +85,8 @@ lazy val library = (project in file("library"))
     // We have to ensure that Kamon starts/stops serially
     parallelExecution in Test := false,
     // Don't count Protobuf-generated code in coverage
-    coverageExcludedPackages := "com\\.monsanto\\.arch\\.kamon\\.prometheus\\.metric\\..*"
+    coverageExcludedPackages := "com\\.monsanto\\.arch\\.kamon\\.prometheus\\.metric\\..*",
+    javaOptions in Test := Seq("-Xmx2g")
   )
 
 lazy val demo = (project in file("demo"))

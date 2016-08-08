@@ -1,21 +1,20 @@
 package com.monsanto.arch.kamon.prometheus.demo
 
-import com.monsanto.arch.kamon.prometheus.Prometheus
 import com.monsanto.arch.kamon.spray.routing.TracingHttpServiceActor
 import kamon.Kamon
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 
-/** A simple spray service that contains a simple endpoint and a metrics endpoint that Prometheus can consume.
-  *
+/** A simple spray service that contains a simple endpoint.
+  * Prometheus metrics endpoint is automatically bound to :9090/metrics
   * @author Daniel Solano Gómez
   */
 class DemoServiceActor extends TracingHttpServiceActor {
   import DemoServiceActor._
 
   override implicit val actorRefFactory = context
-  override def receive = runRoute(metricsRoute ~ demoRoute ~ metricRoutes ~ timesOutRoute ~ errorRoute)
+  override def receive = runRoute(demoRoute ~ metricRoutes ~ timesOutRoute ~ errorRoute)
   var minMaxCount = 0L
 
   /** A simple endpoint for `/` which also gives all traces that end up here the name ‘demo-endpoint’. */
@@ -23,7 +22,7 @@ class DemoServiceActor extends TracingHttpServiceActor {
     path("") {
       get {
         complete {
-          "Welcome to the demo for Kamon/Prometheus."
+          "Welcome to the demo for Kamon/Prometheus. See port 9090/metrics for the prometheus metrics endpoint."
         }
       }
     }
@@ -49,7 +48,7 @@ class DemoServiceActor extends TracingHttpServiceActor {
 
           mmc.increment(change)
 
-          minMaxCount.toString
+          minMaxCount.toString()
         }
       } ~
       path("histogram") {
@@ -58,7 +57,7 @@ class DemoServiceActor extends TracingHttpServiceActor {
           val value = System.currentTimeMillis() % 1000L
           h.record(value)
 
-          value.toString
+          value.toString()
         }
       }
     }
@@ -88,11 +87,6 @@ class DemoServiceActor extends TracingHttpServiceActor {
       }
     }
 
-  /** This directive creates the metrics endpoint at `/metrics` and names all traces which end up here ‘metrics’. */
-  val metricsRoute =
-    path("metrics") {
-      Kamon(Prometheus).route
-    }
 }
 
 object DemoServiceActor {

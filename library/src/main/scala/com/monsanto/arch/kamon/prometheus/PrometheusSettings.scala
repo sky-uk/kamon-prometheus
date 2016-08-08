@@ -6,7 +6,8 @@ import kamon.Kamon
 import kamon.util.ConfigTools.Syntax
 
 import scala.collection.JavaConversions
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+import scala.util.Try
 
 /** A settings object used for configuring how the extension should behave.
   *
@@ -37,6 +38,11 @@ class PrometheusSettings(config: Config) {
     val labelsConfig = prometheusConfig.getConfig("labels")
     labelsConfig.firstLevelKeys.map(name ⇒ name → labelsConfig.getString(name)).toMap
   }
+
+  val bindEnabled = Try(prometheusConfig.getBoolean("bind.enabled")).getOrElse(false)
+  val bindInterface = Try(prometheusConfig.getString("bind.interface")).getOrElse("0.0.0.0")
+  val bindPort = Try(prometheusConfig.getInt("bind.port")).getOrElse(9090)
+  val bindTimeout = Try(prometheusConfig.getFiniteDuration("bind.timeout")).getOrElse(30.seconds)
 
   // ensure that the refresh interval is not less than the tick interval
   if (refreshInterval < Kamon.metrics.settings.tickInterval) {

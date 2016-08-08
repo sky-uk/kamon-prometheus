@@ -1,10 +1,11 @@
 package com.monsanto.arch.kamon.prometheus
 
+import akka.actor.ActorSystem
 import com.monsanto.arch.kamon.prometheus.KamonTestKit.TestCurrentValueCollector
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import kamon.Kamon
 import kamon.metric.SubscriptionsDispatcher.TickMetricSnapshot
-import kamon.metric.instrument.{UnitOfMeasurement, CollectionContext, Gauge}
+import kamon.metric.instrument.{CollectionContext, Gauge, UnitOfMeasurement}
 import kamon.metric.{Entity, SingleInstrumentEntityRecorder, SubscriptionsDispatcher}
 import kamon.util.{LazyActorRef, MilliTimestamp}
 import org.scalatest.Suite
@@ -31,12 +32,17 @@ trait KamonTestKit extends Suite {
     TickMetricSnapshot(start, end, snapshots)
   }
 
-  /** Creates a new histogram and increments it by the given count.  Returns the entity for the counter. */
+  /** Creates a new counter and increments it by the given count.  Returns the entity for the counter. */
   def counter(name: String, count: Long, tags: Map[String,String] = Map.empty,
-              unitOfMeasurement: UnitOfMeasurement = UnitOfMeasurement.Unknown) = {
+              unitOfMeasurement: UnitOfMeasurement = UnitOfMeasurement.Unknown): Entity = {
     val c = Kamon.metrics.counter(name, tags, unitOfMeasurement)
     c.increment(count)
     Entity(name, SingleInstrumentEntityRecorder.Counter, tags)
+  }
+
+  def counter(count: Long, unitOfMeasurement: UnitOfMeasurement): Entity = {
+    val randomName = PrometheusGen.metricName.sample.getOrElse(fail("Failed to generate a valid metric name"))
+    counter(randomName, count, Map.empty, unitOfMeasurement)
   }
 
   /** Creates a new histogram and records the given values.  Returns the entity for the histogram. */
@@ -46,6 +52,12 @@ trait KamonTestKit extends Suite {
     values.foreach(h.record)
 
     Entity(name, SingleInstrumentEntityRecorder.Histogram, tags)
+  }
+
+  def histogram(unitOfMeasurement: UnitOfMeasurement): Entity = {
+    val randomName = PrometheusGen.metricName.sample.getOrElse(fail("Failed to generate a valid metric name"))
+    histogram(randomName, Seq.empty, Map.empty, unitOfMeasurement)
+
   }
 
   /** Creates a new min-max counter and applies the given increments/decrements.  After every 5 changes, the counter
@@ -60,6 +72,11 @@ trait KamonTestKit extends Suite {
     Entity(name, SingleInstrumentEntityRecorder.MinMaxCounter, tags)
   }
 
+  def minMaxCounter(unitOfMeasurement: UnitOfMeasurement): Entity = {
+    val randomName = PrometheusGen.metricName.sample.getOrElse(fail("Failed to generate a valid metric name"))
+    minMaxCounter(randomName, Seq.empty, Map.empty, unitOfMeasurement)
+  }
+
   /** Creates a new gauge that will record the given values.  Returns the entity of the gauge. */
   def gauge(name: String, readings: Seq[Long] = Seq.empty, tags: Map[String,String] = Map.empty,
              unitOfMeasurement: UnitOfMeasurement = UnitOfMeasurement.Unknown): Entity = {
@@ -68,15 +85,9 @@ trait KamonTestKit extends Suite {
     Entity(name, SingleInstrumentEntityRecorder.Gauge, tags)
   }
 
-  /** Starts and stops Kamon around each test. */
-  override def withFixture(test: NoArgTest) = {
-    val config = KamonTestKit.TestConfig.withFallback(ConfigFactory.load())
-    Kamon.start(config)
-    try {
-      super.withFixture(test)
-    } finally {
-      Kamon.shutdown()
-    }
+  def gauge(unitOfMeasurement: UnitOfMeasurement): Entity = {
+    val randomName = PrometheusGen.metricName.sample.getOrElse(fail("Failed to generate a valid metric name"))
+    gauge(randomName, Seq.empty, Map.empty, unitOfMeasurement)
   }
 
   /** Forcibly flushes all subscriptions.
@@ -89,6 +100,19 @@ trait KamonTestKit extends Suite {
     val subscriptions = subscriptionsField.get(Kamon.metrics).asInstanceOf[LazyActorRef]
     subscriptions.tell(SubscriptionsDispatcher.Tick)
   }
+
+  lazy val kamonActorSystem: ActorSystem = {
+    Kamon.start()
+    val ru = scala.reflect.runtime.universe
+    val mirror = ru.runtimeMirror(getClass.getClassLoader)
+    val moduleSymbol = ru.typeOf[Kamon.type].termSymbol.asModule
+    val moduleMirror = mirror.reflectModule(moduleSymbol)
+    val instanceMirror = mirror.reflect(moduleMirror.instance)
+    val systemTerm = ru.typeOf[Kamon.type].decl(ru.newTermName("_system")).asTerm.accessed.asTerm
+    val fieldMirror = instanceMirror.reflectField(systemTerm)
+    fieldMirror.get.asInstanceOf[ActorSystem]
+  }
+
 }
 
 object KamonTestKit {
