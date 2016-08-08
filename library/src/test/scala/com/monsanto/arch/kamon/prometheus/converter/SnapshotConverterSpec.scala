@@ -16,11 +16,12 @@ import kamon.metric.instrument.{InstrumentFactory, Memory, Time, UnitOfMeasureme
 import kamon.util.executors.{ForkJoinPoolMetrics, ThreadPoolExecutorMetrics}
 import org.scalacheck.Gen
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import org.scalatest.{LoneElement, Matchers, WordSpec}
+import org.scalatest.{DoNotDiscover, LoneElement, Matchers, WordSpec}
 
 import scala.concurrent.forkjoin.ForkJoinPool
 
 /** Tests for the conversion of Kamon TickMetricSnapshot instances into our own MetricFamily instances. */
+@DoNotDiscover
 class SnapshotConverterSpec extends WordSpec with KamonTestKit with Matchers with GeneratorDrivenPropertyChecks with LoneElement {
   def handle = afterWord("handle")
 
@@ -28,7 +29,7 @@ class SnapshotConverterSpec extends WordSpec with KamonTestKit with Matchers wit
 
   def are = afterWord("are")
 
-  def converter = new SnapshotConverter(Kamon(Prometheus).settings)
+  def converter = new SnapshotConverter(new PrometheusSettings(ConfigFactory.load()))
 
   "a snapshot converter" should handle {
     "empty ticks" in {
@@ -123,94 +124,94 @@ class SnapshotConverterSpec extends WordSpec with KamonTestKit with Matchers wit
         import SnapshotConverterSpec.{Celsius, Joules}
 
         "unknown" in {
-          val entity = counter("counter", 20, unitOfMeasurement = UnitOfMeasurement.Unknown)
+          val entity = counter(20, unitOfMeasurement = UnitOfMeasurement.Unknown)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter"
+          result.loneElement.name shouldBe entity.name
         }
 
         "nanoseconds" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Time.Nanoseconds)
+          val entity = counter(20, unitOfMeasurement = Time.Nanoseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter_nanoseconds"
+          result.loneElement.name should endWith("_nanoseconds")
         }
 
         "microseconds" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Time.Microseconds)
+          val entity = counter(20, unitOfMeasurement = Time.Microseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter_microseconds"
+          result.loneElement.name should endWith("_microseconds")
         }
 
         "milliseconds" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Time.Milliseconds)
+          val entity = counter(20, unitOfMeasurement = Time.Milliseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter_milliseconds"
+          result.loneElement.name should endWith("_milliseconds")
         }
 
         "seconds" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Time.Seconds)
+          val entity = counter(20, unitOfMeasurement = Time.Seconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter_seconds"
+          result.loneElement.name should endWith("_seconds")
         }
 
         "bytes" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Memory.Bytes)
+          val entity = counter(20, unitOfMeasurement = Memory.Bytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter_bytes"
+          result.loneElement.name should endWith("_bytes")
         }
 
         "kilobytes" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Memory.KiloBytes)
+          val entity = counter(20, unitOfMeasurement = Memory.KiloBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter_kilobytes"
+          result.loneElement.name should endWith("_kilobytes")
         }
 
         "megabytes" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Memory.MegaBytes)
+          val entity = counter(20, unitOfMeasurement = Memory.MegaBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter_megabytes"
+          result.loneElement.name should endWith("_megabytes")
         }
 
         "gigabytes" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Memory.GigaBytes)
+          val entity = counter(20, unitOfMeasurement = Memory.GigaBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter_gigabytes"
+          result.loneElement.name should endWith("_gigabytes")
         }
 
         "hours (custom time type)" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Time(3600, "h"))
+          val entity = counter(20, unitOfMeasurement = Time(3600, "h"))
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter_h"
+          result.loneElement.name should endWith("_h")
         }
 
         "terabytes (custom memory type)" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Time(1024E4, "Tb"))
+          val entity = counter(20, unitOfMeasurement = Time(1024E4, "Tb"))
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter_Tb"
+          result.loneElement.name should endWith("_Tb")
         }
 
         "joules (custom type)" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Joules)
+          val entity = counter(20, unitOfMeasurement = Joules)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter_J"
+          result.loneElement.name should endWith("_J")
         }
 
         "celsius (mungeable custom type)" in {
-          val entity = counter("counter", 20, unitOfMeasurement = Celsius)
+          val entity = counter(20, unitOfMeasurement = Celsius)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "counter__C"
+          result.loneElement.name should endWith("__C")
         }
       }
     }
@@ -337,94 +338,94 @@ class SnapshotConverterSpec extends WordSpec with KamonTestKit with Matchers wit
         import SnapshotConverterSpec.{Celsius, Joules}
 
         "unknown" in {
-          val entity = histogram("histogram", unitOfMeasurement = UnitOfMeasurement.Unknown)
+          val entity = histogram(unitOfMeasurement = UnitOfMeasurement.Unknown)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram"
+          result.loneElement.name shouldBe entity.name
         }
 
         "nanoseconds" in {
-          val entity = histogram("histogram", unitOfMeasurement = Time.Nanoseconds)
+          val entity = histogram(unitOfMeasurement = Time.Nanoseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram_nanoseconds"
+          result.loneElement.name should endWith("_nanoseconds")
         }
 
         "microseconds" in {
-          val entity = histogram("histogram", unitOfMeasurement = Time.Microseconds)
+          val entity = histogram(unitOfMeasurement = Time.Microseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram_microseconds"
+          result.loneElement.name should endWith("_microseconds")
         }
 
         "milliseconds" in {
-          val entity = histogram("histogram", unitOfMeasurement = Time.Milliseconds)
+          val entity = histogram(unitOfMeasurement = Time.Milliseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram_milliseconds"
+          result.loneElement.name should endWith("_milliseconds")
         }
 
         "seconds" in {
-          val entity = histogram("histogram", unitOfMeasurement = Time.Seconds)
+          val entity = histogram(unitOfMeasurement = Time.Seconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram_seconds"
+          result.loneElement.name should endWith("_seconds")
         }
 
         "bytes" in {
-          val entity = histogram("histogram", unitOfMeasurement = Memory.Bytes)
+          val entity = histogram(unitOfMeasurement = Memory.Bytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram_bytes"
+          result.loneElement.name should endWith("_bytes")
         }
 
         "kilobytes" in {
-          val entity = histogram("histogram", unitOfMeasurement = Memory.KiloBytes)
+          val entity = histogram(unitOfMeasurement = Memory.KiloBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram_kilobytes"
+          result.loneElement.name should endWith("_kilobytes")
         }
 
         "megabytes" in {
-          val entity = histogram("histogram", unitOfMeasurement = Memory.MegaBytes)
+          val entity = histogram(unitOfMeasurement = Memory.MegaBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram_megabytes"
+          result.loneElement.name should endWith("_megabytes")
         }
 
         "gigabytes" in {
-          val entity = histogram("histogram", unitOfMeasurement = Memory.GigaBytes)
+          val entity = histogram(unitOfMeasurement = Memory.GigaBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram_gigabytes"
+          result.loneElement.name should endWith("_gigabytes")
         }
 
         "hours (custom time type)" in {
-          val entity = histogram("histogram", unitOfMeasurement = Time(3600, "h"))
+          val entity = histogram(unitOfMeasurement = Time(3600, "h"))
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram_h"
+          result.loneElement.name should endWith("_h")
         }
 
         "terabytes (custom memory type)" in {
-          val entity = histogram("histogram", unitOfMeasurement = Time(1024E4, "Tb"))
+          val entity = histogram(unitOfMeasurement = Time(1024E4, "Tb"))
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram_Tb"
+          result.loneElement.name should endWith("_Tb")
         }
 
         "joules (custom type)" in {
-          val entity = histogram("histogram", unitOfMeasurement = Joules)
+          val entity = histogram(unitOfMeasurement = Joules)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram_J"
+          result.loneElement.name should endWith("_J")
         }
 
         "celsius (mungeable custom type)" in {
-          val entity = histogram("histogram", unitOfMeasurement = Celsius)
+          val entity = histogram(unitOfMeasurement = Celsius)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "histogram__C"
+          result.loneElement.name should endWith("__C")
         }
       }
     }
@@ -529,94 +530,94 @@ class SnapshotConverterSpec extends WordSpec with KamonTestKit with Matchers wit
         import SnapshotConverterSpec.{Celsius, Joules}
 
         "unknown" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = UnitOfMeasurement.Unknown)
+          val entity = minMaxCounter(unitOfMeasurement = UnitOfMeasurement.Unknown)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter"
+          result.loneElement.name shouldBe entity.name
         }
 
         "nanoseconds" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Time.Nanoseconds)
+          val entity = minMaxCounter(unitOfMeasurement = Time.Nanoseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter_nanoseconds"
+          result.loneElement.name should endWith("_nanoseconds")
         }
 
         "microseconds" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Time.Microseconds)
+          val entity = minMaxCounter(unitOfMeasurement = Time.Microseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter_microseconds"
+          result.loneElement.name should endWith("_microseconds")
         }
 
         "milliseconds" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Time.Milliseconds)
+          val entity = minMaxCounter(unitOfMeasurement = Time.Milliseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter_milliseconds"
+          result.loneElement.name should endWith("_milliseconds")
         }
 
         "seconds" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Time.Seconds)
+          val entity = minMaxCounter(unitOfMeasurement = Time.Seconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter_seconds"
+          result.loneElement.name should endWith("_seconds")
         }
 
         "bytes" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Memory.Bytes)
+          val entity = minMaxCounter(unitOfMeasurement = Memory.Bytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter_bytes"
+          result.loneElement.name should endWith("_bytes")
         }
 
         "kilobytes" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Memory.KiloBytes)
+          val entity = minMaxCounter(unitOfMeasurement = Memory.KiloBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter_kilobytes"
+          result.loneElement.name should endWith("_kilobytes")
         }
 
         "megabytes" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Memory.MegaBytes)
+          val entity = minMaxCounter(unitOfMeasurement = Memory.MegaBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter_megabytes"
+          result.loneElement.name should endWith("_megabytes")
         }
 
         "gigabytes" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Memory.GigaBytes)
+          val entity = minMaxCounter(unitOfMeasurement = Memory.GigaBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter_gigabytes"
+          result.loneElement.name should endWith("_gigabytes")
         }
 
         "hours (custom time type)" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Time(3600, "h"))
+          val entity = minMaxCounter(unitOfMeasurement = Time(3600, "h"))
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter_h"
+          result.loneElement.name should endWith("_h")
         }
 
         "terabytes (custom memory type)" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Time(1024E4, "Tb"))
+          val entity = minMaxCounter(unitOfMeasurement = Time(1024E4, "Tb"))
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter_Tb"
+          result.loneElement.name should endWith("_Tb")
         }
 
         "joules (custom type)" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Joules)
+          val entity = minMaxCounter(unitOfMeasurement = Joules)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter_J"
+          result.loneElement.name should endWith("_J")
         }
 
         "celsius (mungeable custom type)" in {
-          val entity = minMaxCounter("minMaxCounter", unitOfMeasurement = Celsius)
+          val entity = minMaxCounter(unitOfMeasurement = Celsius)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "minMaxCounter__C"
+          result.loneElement.name should endWith("__C")
         }
       }
     }
@@ -728,94 +729,94 @@ class SnapshotConverterSpec extends WordSpec with KamonTestKit with Matchers wit
         import SnapshotConverterSpec.{Celsius, Joules}
 
         "unknown" in {
-          val entity = gauge("gauge", unitOfMeasurement = UnitOfMeasurement.Unknown)
+          val entity = gauge(unitOfMeasurement = UnitOfMeasurement.Unknown)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge"
+          result.loneElement.name shouldBe entity.name
         }
 
         "nanoseconds" in {
-          val entity = gauge("gauge", unitOfMeasurement = Time.Nanoseconds)
+          val entity = gauge(unitOfMeasurement = Time.Nanoseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge_nanoseconds"
+          result.loneElement.name should endWith("_nanoseconds")
         }
 
         "microseconds" in {
-          val entity = gauge("gauge", unitOfMeasurement = Time.Microseconds)
+          val entity = gauge(unitOfMeasurement = Time.Microseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge_microseconds"
+          result.loneElement.name should endWith("_microseconds")
         }
 
         "milliseconds" in {
-          val entity = gauge("gauge", unitOfMeasurement = Time.Milliseconds)
+          val entity = gauge(unitOfMeasurement = Time.Milliseconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge_milliseconds"
+          result.loneElement.name should endWith("_milliseconds")
         }
 
         "seconds" in {
-          val entity = gauge("gauge", unitOfMeasurement = Time.Seconds)
+          val entity = gauge(unitOfMeasurement = Time.Seconds)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge_seconds"
+          result.loneElement.name should endWith("_seconds")
         }
 
         "bytes" in {
-          val entity = gauge("gauge", unitOfMeasurement = Memory.Bytes)
+          val entity = gauge(unitOfMeasurement = Memory.Bytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge_bytes"
+          result.loneElement.name should endWith("_bytes")
         }
 
         "kilobytes" in {
-          val entity = gauge("gauge", unitOfMeasurement = Memory.KiloBytes)
+          val entity = gauge(unitOfMeasurement = Memory.KiloBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge_kilobytes"
+          result.loneElement.name should endWith("_kilobytes")
         }
 
         "megabytes" in {
-          val entity = gauge("gauge", unitOfMeasurement = Memory.MegaBytes)
+          val entity = gauge(unitOfMeasurement = Memory.MegaBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge_megabytes"
+          result.loneElement.name should endWith("_megabytes")
         }
 
         "gigabytes" in {
-          val entity = gauge("gauge", unitOfMeasurement = Memory.GigaBytes)
+          val entity = gauge(unitOfMeasurement = Memory.GigaBytes)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge_gigabytes"
+          result.loneElement.name should endWith("_gigabytes")
         }
 
         "hours (custom time type)" in {
-          val entity = gauge("gauge", unitOfMeasurement = Time(3600, "h"))
+          val entity = gauge(unitOfMeasurement = Time(3600, "h"))
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge_h"
+          result.loneElement.name should endWith("_h")
         }
 
         "terabytes (custom memory type)" in {
-          val entity = gauge("gauge", unitOfMeasurement = Time(1024E4, "Tb"))
+          val entity = gauge(unitOfMeasurement = Time(1024E4, "Tb"))
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge_Tb"
+          result.loneElement.name should endWith("_Tb")
         }
 
         "joules (custom type)" in {
-          val entity = gauge("gauge", unitOfMeasurement = Joules)
+          val entity = gauge(unitOfMeasurement = Joules)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge_J"
+          result.loneElement.name should endWith("_J")
         }
 
         "celsius (mungeable custom type)" in {
-          val entity = gauge("gauge", unitOfMeasurement = Celsius)
+          val entity = gauge(unitOfMeasurement = Celsius)
           val tick = snapshotOf(entity)
           val result = converter(tick)
-          result.loneElement.name shouldBe "gauge__C"
+          result.loneElement.name should endWith("__C")
         }
       }
     }
@@ -1375,10 +1376,12 @@ object SnapshotConverterSpec {
   case object Joules extends UnitOfMeasurement {
     override val name = "energy"
     override val label = "J"
+    override protected def canScale(toUnit: UnitOfMeasurement): Boolean = toUnit == this
   }
 
   case object Celsius extends UnitOfMeasurement {
     override val name = "temperature"
     override val label = "°C"
+    override protected def canScale(toUnit: UnitOfMeasurement): Boolean = toUnit == this
   }
 }

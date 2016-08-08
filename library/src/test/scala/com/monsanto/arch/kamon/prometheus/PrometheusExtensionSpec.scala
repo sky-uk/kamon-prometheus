@@ -2,25 +2,31 @@ package com.monsanto.arch.kamon.prometheus
 
 import com.monsanto.arch.kamon.prometheus.converter.SnapshotConverter
 import com.monsanto.arch.kamon.prometheus.metric._
+import com.typesafe.config.ConfigFactory
 import kamon.Kamon
 import kamon.metric.SingleInstrumentEntityRecorder
 import kamon.util.MilliTimestamp
+import org.scalacheck.Gen
 import org.scalactic.Uniformity
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.concurrent.Eventually
+import org.scalatest.{DoNotDiscover, Matchers, WordSpec}
 import spray.http.HttpHeaders.{Accept, `Accept-Encoding`}
 import spray.http.{HttpEncodings, HttpResponse, MediaType, StatusCodes}
 import spray.httpx.encoding.Gzip
 import spray.httpx.unmarshalling.{Deserialized, FromResponseUnmarshaller, Unmarshaller}
+import spray.routing.RoutingSettings
 import spray.testkit.ScalatestRouteTest
 
 import scala.collection.immutable.ListMap
+import scala.concurrent.duration._
 
 /** Tests the end-to-end functionality of the
   * [[com.monsanto.arch.kamon.prometheus.PrometheusExtension PrometheusExtension]].
   *
   * @author Daniel Solano Gómez
   */
-class PrometheusExtensionSpec extends WordSpec with KamonTestKit with ScalatestRouteTest with Matchers {
+@DoNotDiscover
+class PrometheusExtensionSpec extends WordSpec with KamonTestKit with ScalatestRouteTest with Matchers with Eventually {
   /** Unmarshaller from the text format. */
   val textUnmarshaller =
     Unmarshaller.delegate[String, Seq[MetricFamily]](PrometheusEndpoint.TextMediaType)(TextFormat.parse)
@@ -39,19 +45,21 @@ class PrometheusExtensionSpec extends WordSpec with KamonTestKit with ScalatestR
     }
   }
 
-  "The Prometheus extension" should {
-    "be available from Kamon" in {
-      Kamon(Prometheus) should not be null
-    }
-    "provide a spray endpoint" in {
-      Kamon(Prometheus).route should not be null
-    }
-  }
+  override def cleanUp = {}
+
+  override implicit val system = kamonActorSystem
+  val settings: PrometheusSettings = new PrometheusSettings(ConfigFactory.load())
+  implicit def actorRefFactory = kamonActorSystem
+
+  implicit lazy val testTimeout = RouteTestTimeout(3.seconds)
+  implicit lazy val routeSettings = RoutingSettings.default(kamonActorSystem)
+  lazy val extension = new PrometheusExtension(kamonActorSystem)
+  lazy val route = extension.route
 
   "The Prometheus extension endpoint" when {
     "it has no snapshots" should {
       "returns an empty response" in {
-        Get() ~> Kamon(Prometheus).route ~> check {
+        Get("/metrics") ~> route ~> check {
           handled shouldBe true
           status shouldBe StatusCodes.NoContent
         }
@@ -59,13 +67,14 @@ class PrometheusExtensionSpec extends WordSpec with KamonTestKit with ScalatestR
     }
 
     "doing a plain-text request" when {
-      def doGet() = Get() ~> Kamon(Prometheus).route
+      def doGet() = Get("/metrics") ~> route
 
       "it has content" should {
         "handle GET requests" in new WithData {
           doGet() ~> check {
             handled shouldBe true
             status shouldBe StatusCodes.OK
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
@@ -73,38 +82,41 @@ class PrometheusExtensionSpec extends WordSpec with KamonTestKit with ScalatestR
           doGet() ~> check {
             definedCharset shouldBe defined
             charset.value shouldBe "UTF-8"
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "use the correct media type" in new WithData {
           doGet() ~> check {
             mediaType shouldBe MediaType.custom("text", "plain", parameters = Map("version" -> "0.0.4"))
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "is not compressed" in new WithData {
           doGet() ~> check {
             response.encoding shouldBe HttpEncodings.identity
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "have the correct content" in new WithData {
           doGet() ~> check {
-            val response = responseAs[Seq[MetricFamily]]
-            (response should contain theSameElementsAs snapshot) (after being normalised)
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
       }
     }
 
     "doing a plain-text request accepting gzip compression" when {
-      def doGet() = Get() ~> `Accept-Encoding`(HttpEncodings.gzip) ~> Kamon(Prometheus).route
+      def doGet() = Get("/metrics") ~> `Accept-Encoding`(HttpEncodings.gzip) ~> route
 
       "it has content" should {
         "handle GET requests" in new WithData {
           doGet() ~> check {
             handled shouldBe true
             status shouldBe StatusCodes.OK
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
@@ -112,92 +124,98 @@ class PrometheusExtensionSpec extends WordSpec with KamonTestKit with ScalatestR
           doGet() ~> check {
             definedCharset shouldBe defined
             charset.value shouldBe "UTF-8"
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "use the correct media type" in new WithData {
           doGet() ~> check {
             mediaType shouldBe MediaType.custom("text", "plain", parameters = Map("version" -> "0.0.4"))
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "is compressed" in new WithData {
           doGet() ~> check {
             response.encoding shouldBe HttpEncodings.gzip
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "have the correct content" in new WithData {
           doGet() ~> check {
-            val response = responseAs[Seq[MetricFamily]]
-            (response should contain theSameElementsAs snapshot) (after being normalised)
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
       }
     }
 
     "doing a protocol buffer request" when {
-      def doGet() = Get() ~> Accept(PrometheusEndpoint.ProtoBufMediaType) ~> Kamon(Prometheus).route
+      def doGet() = Get("/metrics") ~> Accept(PrometheusEndpoint.ProtoBufMediaType) ~> route
 
       "it has content" should {
         "handle GET requests" in new WithData {
           doGet() ~> check {
             handled shouldBe true
             status shouldBe StatusCodes.OK
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "use the correct media type" in new WithData {
           doGet() ~> check {
             mediaType shouldBe PrometheusEndpoint.ProtoBufMediaType
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "is not compressed" in new WithData {
           doGet() ~> check {
             response.encoding shouldBe HttpEncodings.identity
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "have the correct content" in new WithData {
           doGet() ~> check {
-            val response = responseAs[Seq[MetricFamily]]
-            (response should contain theSameElementsAs snapshot) (after being normalised)
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
       }
     }
 
     "doing a protocol buffer request accepting gzip compression" when {
-      def doGet() = Get() ~>
+      def doGet() = Get("/metrics") ~>
         `Accept-Encoding`(HttpEncodings.gzip) ~>
         Accept(PrometheusEndpoint.ProtoBufMediaType) ~>
-        Kamon(Prometheus).route
+        route
 
       "it has content" should {
         "handle GET requests" in new WithData {
           doGet() ~> check {
             handled shouldBe true
             status shouldBe StatusCodes.OK
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "use the correct media type" in new WithData {
           doGet() ~> check {
             mediaType shouldBe PrometheusEndpoint.ProtoBufMediaType
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "is not compressed" in new WithData {
           doGet() ~> check {
             response.encoding shouldBe HttpEncodings.gzip
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
 
         "have the correct content" in new WithData {
           doGet() ~> check {
-            val response = responseAs[Seq[MetricFamily]]
-            (response should contain theSameElementsAs snapshot) (after being normalised)
+            checkNormalisedResponse(responseAs[Seq[MetricFamily]], snapshot)
           }
         }
       }
@@ -234,10 +252,20 @@ class PrometheusExtensionSpec extends WordSpec with KamonTestKit with ScalatestR
 
     override def normalized(metricFamily: MetricFamily): MetricFamily = {
       val normalMetrics = metricFamily.metrics.map { m ⇒
-        val sortedLabels = ListMap(m.labels.toSeq.sortWith(_._1 < _._2): _*)
+        val sortedLabels = ListMap(m.labels.toSeq.sorted: _*)
         Metric(m.value, new MilliTimestamp(0), sortedLabels)
       }.sortWith(metricSort)
       MetricFamily(metricFamily.name, metricFamily.prometheusType, metricFamily.help, normalMetrics)
+    }
+  }
+
+  def checkNormalisedResponse(response: Seq[MetricFamily], snapshot: Seq[MetricFamily]) = {
+    val normalizedResponse = response.map(normalised.normalized)
+    val normalizedSnapshot = snapshot.map(normalised.normalized)
+    normalizedSnapshot.foreach { shot =>
+      val actual = normalizedResponse.find(_.name == shot.name)
+        .getOrElse(fail(s"Expected to get a response containing metric with name ${shot.name}"))
+      actual.metrics.toSet shouldBe shot.metrics.toSet
     }
   }
 
@@ -246,51 +274,58 @@ class PrometheusExtensionSpec extends WordSpec with KamonTestKit with ScalatestR
     val ts = MilliTimestamp.now
     import MetricValue.{Bucket => B, Histogram => HG}
     val ∞ = Double.PositiveInfinity
+    val randomCounterName1 = Gen.identifier.sample.getOrElse(fail("Failed to generate a valid metric name"))
+    val randomCounterName2 = Gen.identifier.sample.getOrElse(fail("Failed to generate a valid metric name"))
+    val randomHistoName1 = Gen.identifier.sample.getOrElse(fail("Failed to generate a valid metric name"))
+    val randomHistoName2 = Gen.identifier.sample.getOrElse(fail("Failed to generate a valid metric name"))
+    val randomMinMaxName = Gen.identifier.sample.getOrElse(fail("Failed to generate a valid metric name"))
+
+
     val snapshot = Seq(
-      MetricFamily("test_counter", PrometheusType.Counter, None,
+      MetricFamily(randomCounterName1, PrometheusType.Counter, None,
         Seq(
           Metric(MetricValue.Counter(1), ts,
             Map("type" → "a",
               KamonCategoryLabel → SingleInstrumentEntityRecorder.Counter,
-              KamonNameLabel → "test_counter")),
+              KamonNameLabel → randomCounterName1)),
           Metric(MetricValue.Counter(2), ts,
             Map("type" → "b",
               KamonCategoryLabel → SingleInstrumentEntityRecorder.Counter,
-              KamonNameLabel → "test_counter")))),
-      MetricFamily("another_counter", PrometheusType.Counter, None,
+              KamonNameLabel → randomCounterName1)))),
+      MetricFamily(randomCounterName2, PrometheusType.Counter, None,
         Seq(Metric(MetricValue.Counter(42), ts,
-          Map(KamonCategoryLabel → SingleInstrumentEntityRecorder.Counter, KamonNameLabel → "another_counter")))),
-      MetricFamily("a_histogram", PrometheusType.Histogram, None,
+          Map(KamonCategoryLabel → SingleInstrumentEntityRecorder.Counter, KamonNameLabel → randomCounterName2)))),
+      MetricFamily(randomHistoName1, PrometheusType.Histogram, None,
         Seq(
           Metric(HG(Seq(B(1, 20), B(4, 23), B(∞, 23)), 23, 32), ts,
             Map("got_label" → "yes",
               KamonCategoryLabel → SingleInstrumentEntityRecorder.Histogram,
-              KamonNameLabel → "a_histogram")),
+              KamonNameLabel → randomHistoName1)),
           Metric(HG(Seq(B(3, 2), B(5, 6), B(∞, 6)), 6, 26), ts,
             Map("got_label" → "true",
               KamonCategoryLabel → SingleInstrumentEntityRecorder.Histogram,
-              KamonNameLabel → "a_histogram")))),
-      MetricFamily("another_histogram", PrometheusType.Histogram, None,
+              KamonNameLabel → randomHistoName1)))),
+      MetricFamily(randomHistoName2, PrometheusType.Histogram, None,
         Seq(Metric(HG(Seq(B(20, 20), B(∞, 20)), 20, 400), ts,
-          Map(KamonCategoryLabel → SingleInstrumentEntityRecorder.Histogram, KamonNameLabel → "another_histogram")))),
-      MetricFamily("a_min_max_counter", PrometheusType.Histogram, None,
+          Map(KamonCategoryLabel → SingleInstrumentEntityRecorder.Histogram, KamonNameLabel → randomHistoName2)))),
+      MetricFamily(randomMinMaxName, PrometheusType.Histogram, None,
         Seq(Metric(HG(Seq(B(0, 1), B(1, 2), B(3, 3), B(∞, 3)), 3, 4), ts,
           Map(
             KamonCategoryLabel → SingleInstrumentEntityRecorder.MinMaxCounter,
-            KamonNameLabel → "a_min_max_counter")))))
+            KamonNameLabel → randomMinMaxName)))))
 
-    Kamon.metrics.counter("test_counter", Map("type" -> "a")).increment()
-    Kamon.metrics.counter("test_counter", Map("type" -> "b")).increment(2)
-    Kamon.metrics.counter("another_counter").increment(42)
-    val h = Kamon.metrics.histogram("a_histogram", Map("got_label" → "true"))
+    Kamon.metrics.counter(randomCounterName1, Map("type" -> "a")).increment()
+    Kamon.metrics.counter(randomCounterName1, Map("type" -> "b")).increment(2)
+    Kamon.metrics.counter(randomCounterName2).increment(42)
+    val h = Kamon.metrics.histogram(randomHistoName1, Map("got_label" → "true"))
     h.record(3, 2)
     h.record(5, 4)
-    val h2 = Kamon.metrics.histogram("a_histogram", Map("got_label" → "yes"))
+    val h2 = Kamon.metrics.histogram(randomHistoName1, Map("got_label" → "yes"))
     h2.record(1, 20)
     h2.record(4, 3)
-    val h3 = Kamon.metrics.histogram("another_histogram")
+    val h3 = Kamon.metrics.histogram(randomHistoName2)
     h3.record(20, 20)
-    val mmc = Kamon.metrics.minMaxCounter("a_min_max_counter")
+    val mmc = Kamon.metrics.minMaxCounter(randomMinMaxName)
     mmc.increment(3)
     mmc.decrement(2)
     flushSubscriptions()

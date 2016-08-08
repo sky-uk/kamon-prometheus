@@ -3,46 +3,47 @@ package com.monsanto.arch.kamon.prometheus
 import java.nio.charset.Charset
 import java.util.concurrent.atomic.AtomicReference
 
-import akka.actor.ActorRefFactory
+import akka.actor.Actor.Receive
+import akka.actor.{ActorRefFactory, ActorSystem}
+import akka.io.IO
 import com.monsanto.arch.kamon.prometheus.converter.SnapshotConverter
 import com.monsanto.arch.kamon.prometheus.metric.{MetricFamily, ProtoBufFormat, TextFormat}
 import kamon.metric.SubscriptionsDispatcher.TickMetricSnapshot
+import spray.can.Http
+import spray.can.Http.Bind
 import spray.http._
 import spray.httpx.marshalling.ToResponseMarshaller
-import spray.routing.Route
-import spray.routing.Directives
+import spray.routing.{Directives, HttpService, HttpServiceActor, Route}
 
 /** Manages the Spray endpoint that Prometheus can use to scrape metrics.
   *
   * @author Daniel Solano Gómez
   */
-class PrometheusEndpoint(settings: PrometheusSettings)(implicit val actorRefFactory: ActorRefFactory) {
+trait PrometheusEndpoint extends HttpService {
   import PrometheusEndpoint.{ProtoBufContentType, TextContentType}
-
+  val settings: PrometheusSettings
   /** Converts snapshots from Kamon’s native type to the one used by this extension. */
-  private val snapshotConverter = new SnapshotConverter(settings)
+  private lazy val snapshotConverter = new SnapshotConverter(settings)
   /** Mutable cell with the latest snapshot. */
-  private val snapshot = new AtomicReference[Seq[MetricFamily]]
+  private lazy val snapshot = new AtomicReference[Seq[MetricFamily]]
 
   /** Marshals a snapshot to the text exposition format. */
-  private val textMarshaller: ToResponseMarshaller[Seq[MetricFamily]] =
+  private lazy val textMarshaller: ToResponseMarshaller[Seq[MetricFamily]] =
     ToResponseMarshaller.delegate[Seq[MetricFamily], String](TextContentType)(TextFormat.format _)
 
   /** Marshals a snapshot to the protocol buffer exposition format. */
-  private val protoBufMarshaller: ToResponseMarshaller[Seq[MetricFamily]] =
+  private lazy val protoBufMarshaller: ToResponseMarshaller[Seq[MetricFamily]] =
     ToResponseMarshaller.delegate[Seq[MetricFamily], Array[Byte]](ProtoBufContentType)(ProtoBufFormat.format _)
 
   /** Marshals a snapshot depending on content negotiation. */
-  private implicit val marshaller: ToResponseMarshaller[Seq[MetricFamily]] =
+  private implicit lazy val marshaller: ToResponseMarshaller[Seq[MetricFamily]] =
     ToResponseMarshaller.oneOf(TextContentType, ProtoBufContentType)(textMarshaller, protoBufMarshaller)
 
   /** Provides a basic route that responds to GET requests with the metrics in a Prometheus-compatible exposition
     * format.  Note that if there is no snapshot information available, this will respond with a No Content
     * response.
     */
-  val route: Route = {
-    import Directives._
-
+  lazy val route: Route = path("metrics"){
     get {
       compressResponseIfRequested() {
         dynamic {
@@ -61,7 +62,7 @@ class PrometheusEndpoint(settings: PrometheusSettings)(implicit val actorRefFact
   }
 }
 
-private object PrometheusEndpoint {
+object PrometheusEndpoint {
   /** The media type for the Prometheus text-based exposition format. */
   val TextMediaType = MediaTypes.register(
     MediaType.custom("text", "plain", compressible = true, parameters = Map("version" -> "0.0.4")))
@@ -83,4 +84,13 @@ private object PrometheusEndpoint {
       * it during marshalling.
       */
   val ProtoBufContentType = ContentType(ProtoBufMediaType)
+
+  def apply(sys: ActorSystem, conf: PrometheusSettings) = new PrometheusEndpoint {
+    override lazy val settings: PrometheusSettings = conf
+    override implicit def actorRefFactory: ActorRefFactory = sys
+  }
+}
+
+class PrometheusService(val settings: PrometheusSettings, val endpoint: PrometheusEndpoint) extends HttpServiceActor {
+  override def receive: Receive = runRoute(endpoint.route)
 }
