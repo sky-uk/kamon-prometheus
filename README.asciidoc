@@ -141,6 +141,25 @@ published metrics.  Keep in mind  that label names may munged to fit
 http://prometheus.io/docs/concepts/data_model/#metric-names-and-labels[Prometheus’ naming requirements].
 
 
+=== Binding
+
+_kamon-prometheus_ will automatically bind to a specified port on the path `/metrics`
+
+For example, given:
+
+[source,scala]
+.The following _kamon-prometheus_ bind configuration
+------------------------------------------------------------------------------
+
+kamon.prometheus.bind {
+  enabled = true
+  port = 9090
+  interface = "0.0.0.0"
+  timeout = 30 seconds
+}
+------------------------------------------------------------------------------
+The metrics API will be bound to port 8080 on the interface 0.0.0.0, with a timeout of 30 seconds. 
+
 Usage
 -----
 
